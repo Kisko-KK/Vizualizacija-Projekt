@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <script src="country-continent.js"></script>
+    <script src="countries_data.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: #333;
+        justify-content: center;
+        color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Navbar elements */
+      .navbar div {
+        cursor: pointer;
+        font-size: 20px;
+        padding: 20px;
+        transition: background-color 0.3s;
+      }
+
+      .navbar div:hover {
+        background-color: #555;
+      }
+
+      /* Map container styles */
+      .map-container {
+        margin: 0 auto; /* This centers the map horizontally */
+        display: flex;
+        justify-content: center; /* This centers the map vertically */
+      }
+
+      /* Chart container styles */
+      .chart-container {
+        margin: 0 auto; /* This centers the map horizontally */
+        display: flex;
+        justify-content: center; /* This centers the map vertically */
+      }
+      #map-section {
+        padding-top: 100px;
+        text-align: center; /* Center the content horizontally */
+      }
+
+      #map-section input[type="radio"] {
+        margin: 0 10px;
+        transform: scale(1.5);
+      }
+
+      #chart-section {
+        padding-top: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="navbar">
+      <div onclick="scrollToSection('map-section')">Maps</div>
+      <div onclick="scrollToSection('chart-section')">Chart</div>
+    </div>
+    <div class="wrapper" id="map-section">
+      <div>
+        <input type="radio" name="map" value="map1" checked />
+        Geographical Distribution
+        <input type="radio" name="map" value="map2" /> Continent Distribution
+      </div>
+      <div class="map-container">
+        <svg id="map-svg" width="1300" height="900"></svg>
+      </div>
+    </div>
+
+    <div class="wrapper" id="chart-section">
+      <div class="row">
+        <div class="col-md-6">
+          <label for="country-select">Select countries:</label>
+          <select id="country-select" multiple class="form-control">
+            <option value="">All countries</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label for="sort-select">Sort by:</label>
+          <select id="sort-select" class="form-control">
+            <option value="Sales ($billion)">Sales</option>
+            <option value="Profits ($billion)">Profits</option>
+            <option value="Assets ($billion)">Assets</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-container">
+        <svg id="chart-svg" width="1600" height="400"></svg>
+      </div>
+    </div>
+
+    <script>
+      var width = 1300;
+      var height = 900;
+
+      var projection = d3.geo
+        .mercator()
+        .scale(150)
+        .translate([width / 2, height / 2]);
+
+      var path = d3.geo.path().projection(projection);
+
+      var svg = d3.select("#map-svg");
+
+      var tooltip = d3
+        .select("body")
+        .append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+      d3.csv("Top2000CompaniesGlobally.csv", function (error, companiesData) {
+        if (error) throw error;
+
+        function initializeMap1() {
+          svg.selectAll("*").remove();
+          svg
+            .selectAll("path")
+            .data(countries_data.features)
+            .enter()
+            .append("path")
+            .attr("class", "boundary")
+            .attr("d", path)
+            .on("click", function (d) {
+              var countryName = d.properties.name;
+              var companiesInCountry = companiesData.filter(function (company) {
+                return company.Country === countryName;
+              });
+
+              var companyListHTML =
+                "<strong>Companies in " + countryName + ":</strong><br>";
+              if (companiesInCountry.length === 0) {
+                companyListHTML += "None";
+              }
+              companiesInCountry.forEach(function (company) {
+                companyListHTML +=
+                  "<div class='company-name' data-company='" +
+                  JSON.stringify(company) +
+                  "'>" +
+                  company.Company +
+                  "</div>";
+              });
+
+              var mouseX = d3.event.pageX;
+              var mouseY = d3.event.pageY;
+
+              tooltip.transition().duration(200).style("opacity", 0.9);
+              tooltip
+                .html(companyListHTML)
+                .style("left", mouseX + "px")
+                .style("top", mouseY + "px");
+
+              tooltip.selectAll(".company-name").on("click", function () {
+                var companyData = JSON.parse(this.getAttribute("data-company"));
+                alert(
+                  "Company: " +
+                    companyData.Company +
+                    "\nGlobal rank: " +
+                    companyData["Global Rank"] +
+                    "\nSales: " +
+                    companyData["Sales ($billion)"] +
+                    " $billion" +
+                    "\nProfits: " +
+                    companyData["Profits ($billion)"] +
+                    " $billion" +
+                    "\nAssets: " +
+                    companyData["Assets ($billion)"] +
+                    " $billion"
+                );
+
+                tooltip.transition().duration(500).style("opacity", 0);
+                tooltip.on("mouseenter", function () {
+                  tooltip.style("pointer-events", "auto");
+                });
+              });
+
+              tooltip.on("mouseleave", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
+                tooltip.style("pointer-events", "none");
+              });
+              tooltip.on("mouseenter", function () {
+                tooltip.style("pointer-events", "auto");
+              });
+            });
+
+          var zoom = d3.behavior
+            .zoom()
+            .scaleExtent([1, 8])
+            .on("zoom", function () {
+              svg
+                .selectAll(".boundary")
+                .attr(
+                  "transform",
+                  "translate(" +
+                    d3.event.translate +
+                    ")scale(" +
+                    d3.event.scale +
+                    ")"
+                );
+              tooltip.style("pointer-events", "auto");
+            });
+
+          svg.call(zoom);
+        }
+
+        function initializeMap2() {
+          svg.selectAll("*").remove();
+
+          var continentPercentage = {
+            Africa: 2.25,
+            Asia: 36.15,
+            Europe: 22.95,
+            "North America": 31.45,
+            "South America": 2.45,
+            Oceania: 2.2,
+          };
+
+          var maxPercentage = 60;
+          var minPercentage = 0;
+
+          var continentColors = {
+            Africa: "#fae17f",
+            Asia: "#8a0404",
+            Europe: "#3a8bb0",
+            "North America": "#ca2133",
+            "South America": "#f5ab6e",
+            Oceania: "#8be065",
+          };
+
+          svg
+            .selectAll("path")
+            .data(countries_data.features)
+            .enter()
+            .append("path")
+            .attr("class", "boundary")
+            .attr("d", path)
+            .style("fill", function (d) {
+              var country = d.properties.name;
+              var continent = continentMap[country];
+              return continent ? continentColors[continent] : "rgb(0,0,90)";
+            })
+            .on("mouseover", function (d) {
+              var country = d.properties.name;
+              var x = d3.event.pageX;
+              var y = d3.event.pageY;
+              getCompanyCountByCountry(country, function (count) {
+                showCompanyCount(country, count, x, y);
+              });
+            })
+            .on("mouseout", function (d) {
+              hideCompanyCount();
+            });
+
+          var legend = svg
+            .append("g")
+            .attr("class", "legend")
+            .attr("transform", "translate(100,50)");
+
+          var legendRectSize = 20;
+          var legendSpacing = 4;
+
+          var i = 0;
+          for (var continent in continentPercentage) {
+            var percentage = continentPercentage[continent];
+
+            legend
+              .append("rect")
+              .attr("x", 0)
+              .attr("y", i * (legendRectSize + legendSpacing))
+              .attr("width", legendRectSize)
+              .attr("height", legendRectSize)
+              .style("fill", continentColors[continent]);
+
+            legend
+              .append("text")
+              .attr("x", legendRectSize + legendSpacing)
+              .attr(
+                "y",
+                i * (legendRectSize + legendSpacing) + legendRectSize / 2
+              )
+              .text(continent + " (" + percentage + "%)")
+              .attr("alignment-baseline", "middle");
+
+            i++;
+          }
+
+          var zoom = d3.behavior
+            .zoom()
+            .scaleExtent([1, 8])
+            .on("zoom", function () {
+              svg
+                .selectAll(".boundary")
+                .attr(
+                  "transform",
+                  "translate(" +
+                    d3.event.translate +
+                    ")scale(" +
+                    d3.event.scale +
+                    ")"
+                );
+            });
+
+          svg.call(zoom);
+        }
+
+        initializeMap1();
+
+        d3.selectAll("input[type=radio]").on("change", function () {
+          var value = this.value;
+          svg
+            .selectAll("*")
+            .transition()
+            .duration(600)
+            .style("opacity", 0)
+            .remove();
+
+          setTimeout(function () {
+            if (value === "map1") {
+              initializeMap1();
+            } else if (value === "map2") {
+              initializeMap2();
+            }
+          }, 600);
+        });
+      });
+
+      function getCompanyCountByCountry(country, callback) {
+        d3.csv("Top2000CompaniesGlobally.csv", function (error, companiesData) {
+          if (error) throw error;
+          var count = 0;
+          companiesData.forEach(function (company) {
+            if (company.Country === country) {
+              count++;
+            }
+          });
+          callback(count);
+        });
+      }
+
+      function showCompanyCount(country, count, x, y) {
+        tooltip.transition().duration(200).style("opacity", 0.9);
+        tooltip
+          .html(
+            country +
+              ": " +
+              "<span>" +
+              count +
+              "</span>" +
+              " top 2000 companies"
+          )
+          .style("left", x + "px")
+          .style("top", y + "px");
+      }
+
+      function hideCompanyCount() {
+        tooltip.transition().duration(500).style("opacity", 0);
+      }
+    </script>
+    <script>
+      d3.csv("Top2000CompaniesGlobally.csv", function (data) {
+        var countries = d3
+          .set(
+            data.map(function (d) {
+              return d.Country;
+            })
+          )
+          .values();
+
+        var selectCountry = d3.select("#country-select");
+        selectCountry
+          .selectAll("option")
+          .data(countries)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          });
+
+        var svg = d3.select("#chart-svg"),
+          margin = { top: 20, right: 20, bottom: 30, left: 150 },
+          width = +svg.attr("width") - margin.left - margin.right,
+          height = +svg.attr("height") - margin.top - margin.bottom,
+          g = svg
+            .append("g")
+            .attr(
+              "transform",
+              "translate(" + margin.left + "," + margin.top + ")"
+            );
+
+        var y = d3.scale.ordinal().rangeRoundBands([0, height], 0.1);
+
+        var x = d3.scale.linear().rangeRound([0, width]);
+
+        var yAxis = d3.svg.axis().scale(y).orient("left");
+
+        var xAxis = d3.svg
+          .axis()
+          .scale(x)
+          .orient("bottom")
+          .ticks(10)
+          .tickFormat(function (d) {
+            return d + " ($billion)";
+          });
+
+        function updateChart(selectedCountries, sortBy) {
+          var filteredData;
+          if (selectedCountries.includes("")) {
+            filteredData = data;
+          } else {
+            filteredData = data.filter(function (d) {
+              return selectedCountries.includes(d.Country);
+            });
+          }
+
+          var combinedData = [];
+          filteredData.forEach(function (countryData) {
+            combinedData = combinedData.concat(countryData);
+          });
+
+          combinedData.sort(function (a, b) {
+            return +b[sortBy] - +a[sortBy];
+          });
+
+          var top10Data = combinedData.slice(0, 10);
+
+          y.domain(
+            top10Data.map(function (d) {
+              return d.Company;
+            })
+          );
+          x.domain([
+            0,
+            d3.max(top10Data, function (d) {
+              return +d[sortBy];
+            }),
+          ]);
+
+          g.selectAll(".bar").remove();
+          g.selectAll(".axis").remove();
+          g.selectAll(".country-label").remove();
+
+          g.append("g")
+            .attr("class", "axis axis--x")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis)
+            .append("text")
+            .attr("class", "axis-title")
+            .attr("x", width / 2)
+            .attr("y", 30)
+            .attr("text-anchor", "middle");
+
+          g.append("g")
+            .attr("class", "axis axis--y")
+            .call(yAxis)
+            .append("text")
+            .attr("class", "axis-title")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -margin.left + 20)
+            .attr("x", -height / 2)
+            .attr("dy", "1em")
+            .attr("text-anchor", "middle");
+
+          g.selectAll(".bar")
+            .data(top10Data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("y", function (d) {
+              return y(d.Company);
+            })
+            .attr("width", 0)
+            .attr("height", y.rangeBand())
+            .transition()
+            .duration(1500)
+            .attr("width", function (d) {
+              return x(+d[sortBy]);
+            });
+
+          g.selectAll(".country-label")
+            .data(top10Data)
+            .enter()
+            .append("text")
+            .attr("class", "country-label")
+            .attr("x", -60)
+            .attr("y", function (d) {
+              return y(d.Company) + y.rangeBand() / 2 + 8;
+            })
+            .style("font-size", "17px")
+            .text(function (d) {
+              return d.Country;
+            })
+            .transition()
+            .duration(1500)
+            .attr("x", function (d) {
+              return x(d[sortBy]) - 60;
+            });
+        }
+
+        updateChart([""], "Sales ($billion)");
+
+        d3.select("#country-select").on("change", function () {
+          var selectedCountries = [];
+          d3.selectAll("#country-select option:checked").each(function () {
+            selectedCountries.push(this.value);
+          });
+          var selectedSortBy = d3.select("#sort-select").property("value");
+          updateChart(selectedCountries, selectedSortBy);
+        });
+
+        d3.select("#sort-select").on("change", function () {
+          var selectedCountries = [];
+          d3.selectAll("#country-select option:checked").each(function () {
+            selectedCountries.push(this.value);
+          });
+          var selectedSortBy = d3.select(this).property("value");
+          updateChart(selectedCountries, selectedSortBy);
+        });
+      });
+
+      function scrollToSection(sectionId) {
+        document.getElementById(sectionId).scrollIntoView({
+          behavior: "smooth",
+        });
+      }
+    </script>
+  </body>
+</html>

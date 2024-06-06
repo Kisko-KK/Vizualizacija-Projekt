@@ -1,0 +1,135 @@
+svg {
+  display: block;
+  margin-top: 50px; /* Adjust the top margin as needed */
+}
+
+body {
+  padding: auto;
+}
+.row {
+  margin: 0px 20px !important;
+}
+
+.boundary {
+  fill: lightblue;
+  stroke: white;
+  cursor: pointer; /* Promjena kursora u pokazivač (saka) kada se prelazi preko granica zemalja */
+}
+
+.boundary:hover {
+  fill: #333; /* Change fill color on hover */
+}
+.legend {
+  font-size: 12px;
+}
+
+.legend rect {
+  stroke: white;
+}
+span {
+  font-weight: 650;
+}
+
+.tooltip {
+  position: absolute;
+  text-align: left;
+  width: auto;
+  max-width: 250px; /* Set maximum width */
+  height: auto; /* Allow height to adjust based on content */
+  max-height: 200px; /* Set maximum height */
+  overflow-y: auto; /* Enable vertical scrolling */
+  padding: 8px;
+  background-color: #fff;
+  border: 1px solid #000;
+  opacity: 0; /* Hide the tooltip by default */
+  z-index: 9999; /* Ensure tooltip appears above the map */
+}
+
+.company-count {
+  font-size: 12px;
+  font-weight: bold;
+  fill: black;
+}
+
+.tooltip div {
+  margin-left: 10px;
+  white-space: nowrap; /* Prevent text from wrapping */
+  cursor: pointer; /* Change cursor to pointer */
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.bar:hover {
+  fill: #1e90ff;
+}
+
+.axis {
+  font-size: 14px;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.country-label {
+  font-size: 12px;
+  text-anchor: middle;
+}
+
+.axis-title {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.wrapper {
+  margin-top: 100px;
+  height: 100vh;
+  width: 100vw;
+}
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: #333;
+  justify-content: center; /* Center horizontally */
+  color: white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+}
+
+/* Navbar elements */
+.navbar div {
+  cursor: pointer;
+  font-size: 20px;
+  padding: 20px;
+  transition: background-color 0.3s;
+}
+
+.navbar div:hover {
+  background-color: #555;
+}
+
+/* Map container styles */
+.map-container {
+  margin-bottom: 20px;
+}
+
+/* Chart container styles */
+.chart-container {
+  margin-top: 20px;
+}
+#map-section {
+  padding-top: 100px;
+}
+#chart-section {
+  padding-top: 100px;
+}
